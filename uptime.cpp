@@ -31,7 +31,7 @@ int wmain(int argc, wchar_t **argv) {
   } params[] = {
     L"-p", L"show uptime in pretty format",
     L"-h", L"display this help and exit",
-    L"-s", L"system up since",
+    L"-s", L"system up since"
   };
   SYSTEM_TIMEOFDAY_INFORMATION sti{};
   auto nts = ntdll.NtQuerySystemInformation(SystemTimeOfDayInformation, &sti, sizeof(sti), nullptr);
@@ -41,7 +41,7 @@ int wmain(int argc, wchar_t **argv) {
   }
 
   if (3 <= argc) {
-    printf("[*] Index is out of range.\nSpecify -h to get supported options.\n");
+    printf("[*] Index is out of range.\nSpecify -h to get available options.\n");
     return 1;
   }
   else if (2 == argc) {
@@ -56,7 +56,7 @@ int wmain(int argc, wchar_t **argv) {
     }
 
     if (0 == _wcsicmp(argv[1], L"-h")) {
-      printf("Usage: uptime [options]\n\nOptions:\n");
+      printf("Usage: uptime [option]\n\nOptions:\n");
       for (const auto& x : params)
         printf("%5ws - %ws\n", x.param, x.desc);
       return 0;
