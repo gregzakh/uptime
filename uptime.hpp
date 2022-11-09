@@ -47,7 +47,7 @@ struct ntapi {
 
   bool isvalid(void) {
     std::vector<PVOID> v{NtQuerySystemInformation, RtlNtStatusToDosError, RtlTimeToElapsedTimeFields};
-    return std::any_of(v.begin(), v.end(), [](PVOID const x){ return nullptr != x; });
+    return std::all_of(v.begin(), v.end(), [](PVOID const x){ return nullptr != x; });
   }
 };
 
