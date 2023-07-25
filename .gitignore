@@ -1,0 +1,5 @@
+*
+!.gitignore
+!license
+!readme.txt
+!uptime.cpp
