@@ -1,1 +1,1 @@
-PoC of Windows uptime without calling system API functions.
+uptime different systems
