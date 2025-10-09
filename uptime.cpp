@@ -1,99 +1,123 @@
-#include <algorithm>
-#include <cstdint>
-#include <cstdio>
-#include <ctime>
-#include <map>
-#include <numeric>
+#include <iostream>
+#include <chrono>
+#include <format>
 #include <string>
-#include <vector>
+#include <string_view>
+#if defined(__linux__)
+   #include <sys/sysinfo.h>
+#endif
 
-template<typename StdType, typename... ArgTypes>
-auto log(StdType stream, ArgTypes... args) {
-  fprintf(stream, args...);
+auto get_seconds() {
+   using seconds = std::chrono::seconds;
+#if defined(_WIN64)
+   return seconds(*reinterpret_cast<int64_t*>(0x7FFE0008)) / 10000000LL;
+#elif defined(__linux__)
+   struct sysinfo si{};
+   sysinfo(&si);
+   return seconds(si.uptime);
+#else
+   return seconds(0LL);
+#endif
 }
 
-struct KSYSTEM_TIME {
-  uint32_t LowPart;
-  int32_t  High1Time;
-  int32_t  High2Time;
+auto get_local_time() {
+   return std::format("{:%T}", std::chrono::zoned_time{
+      std::chrono::current_zone(), std::chrono::floor<std::chrono::seconds>(
+         std::chrono::system_clock::now()
+      )
+   });
+}
 
-  auto asquad(void) {
-    return *reinterpret_cast<int64_t*>(this);
-  }
+struct uptime {
+   using days = std::chrono::days;
+   using hours = std::chrono::hours;
+   using minutes = std::chrono::minutes;
+   using seconds = std::chrono::seconds;
+   
+   days d{};
+   hours h{};
+   minutes m{};
+   seconds s{};
+   
+   explicit uptime(seconds total) {
+      sec = total;
+      d = std::chrono::duration_cast<days>(total);
+      total -= d;
+      h = std::chrono::duration_cast<hours>(total);
+      total -= h;
+      m = std::chrono::duration_cast<minutes>(total);
+      s = (total -= m);
+   }
+   
+   auto to_pretty() const {
+      auto plural = [](auto v, std::string_view s, std::string_view p = "s") {
+         return v == 1
+            ? std::format("{} {}", v, s)
+            : std::format("{} {}{}", v, s, p);
+      };
+      return std::format("{}, {}, {}, {}",
+         plural(d.count(), "day"),
+         plural(h.count(), "hour"),
+         plural(m.count(), "minute"),
+         plural(s.count(), "second")
+      );
+   }
+   
+   auto to_regular() const {
+      return std::format("{} day{}, {:02}:{:02}:{:02}",
+         d.count(), (d.count() == 1 ? "" : "s"),
+         h.count(), m.count(), s.count()
+      );
+   }
+   
+   auto to_since() const {
+      return std::format("{:%F %H:%M:%S}", std::chrono::zoned_time{
+         std::chrono::current_zone(), std::chrono::floor<seconds>(
+            std::chrono::system_clock::now() - sec
+         )
+      });
+   }
+
+private:
+   seconds sec;
 };
-using PKSYSTEM_TIME = KSYSTEM_TIME*;
 
-std::string tmtostr(const int64_t& tm, const char* fm) {
-  char buf[std::size("yyyy-mm-dd hh:mm:ss")];
-  auto val = (tm - 116444736000000000) / 10000000;
-  std::strftime(std::data(buf), std::size(buf), fm, std::gmtime(&val));
-  return buf;
+void print_help() {
+   std::cout << R"(Usage: uptime [options]
+Options:
+   -p   show uptime in pretty format
+   -h   display this help and exit
+   -s   system up since
+)";
 }
 
-auto tmblock(const int& tp) {
-  std::vector<int64_t> vals{0x7FFE0008, 0x7FFE0014, 0x7FFE0020};
-  std::transform(vals.begin(), vals.end(), vals.begin(), [](const int64_t addr){
-    return (*reinterpret_cast<PKSYSTEM_TIME>(addr)).asquad();
-  });
-
-  switch (tp) {
-    case 0:
-      [&vals](void) {
-        auto sec = vals[0] / 10000000;
-        auto stm = tmtostr(vals[1] - vals[2], "%H:%M:%S");
-        log(stdout, "%s up %lld.%.2lld:%.2lld:%.2lld\n",
-          stm.c_str(), sec / 86400, sec / 3600 % 24, sec % 3600 / 60, sec % 60
-        );
-      }();
-      break;
-
-    case 1:
-      [&vals](void) {
-        auto sec = vals[0] / 10000000;
-        std::map<std::string, int64_t> parts {
-          {"day",    sec / 86400},
-          {"hour",   sec / 3600 % 24},
-          {"minute", sec % 3600 / 60},
-          {"second", sec % 60}
-        };
-        auto res = std::accumulate(parts.begin(), parts.end(), std::string(),
-          [](const std::string& s, const std::pair<const std::string, int64_t>& p) {
-            if (!p.second) return s;
-            return s + std::to_string(p.second) + " " + p.first + (p.second > 1 ? "s" : "") + ", ";
-          }
-        );
-        log(stdout, "%.*s\n", static_cast<int>(res.size() - 2), res.c_str());
-      }();
-      break;
-
-    case 2:
-      log(stdout, "%s\n", tmtostr(vals[1] - vals[2] - vals[0], "%Y-%m-%d %H:%M:%S").c_str());
-      break;
-  }
+bool test_equal(std::string_view a, std::string_view b) {
+   return a.size() == b.size() &&
+      std::ranges::equal(a, b, {}, [](unsigned char c){ return std::tolower(c); });
 }
 
 int main(int argc, char** argv) {
-  switch (argc) {
-    case 1:
-      tmblock(0);
-      break;
-
-    case 2:
-      if (0 == _stricmp(argv[1], "-p")) tmblock(1);
-      else if (0 == _stricmp(argv[1], "-s")) tmblock(2);
-      else if (0 == _stricmp(argv[1], "-h")) {
-        log(stdout, "Usage: uptime [option]\n\nOptions:\n");
-        log(stdout, "  -p - show uptime in pretty format\n");
-        log(stdout, "  -h - display this message and exit\n");
-        log(stdout, "  -s - system up since\n");
+   auto up = uptime(get_seconds());
+   switch (argc) {
+      case 1:
+         std::cout << get_local_time() << " up " << up.to_regular() << "\n";
+         break;
+      
+      case 2: {
+         std::string_view arg = argv[1];
+         if (test_equal(arg, "-p")) std::cout << "up " << up.to_pretty() << "\n";
+         else if (test_equal(arg, "-s")) std::cout << up.to_since() << "\n";
+         else if (test_equal(arg, "-h")) print_help();
+         else std::cout << R"([!] Unknown option has been specified.
+Use -h option to get help.
+)";
+         break;
       }
-      else log(stderr, "[!] Unknown option has been specified.\nUse -h option to get help.\n");
-      break;
-
-    default:
-      log(stderr, "[!] Option index is out of range.\nSpecify -h to get available options.\n");
-      break;
-  }
-
-  return 0;
+      
+      default:
+         std::cerr << R"([!] Option index is out of range.
+Specify -h to get available options.
+)";
+         break;
+   }
 }
