@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
          if (test_equal(arg, "-p")) std::cout << "up " << up.to_pretty() << "\n";
          else if (test_equal(arg, "-s")) std::cout << up.to_since() << "\n";
          else if (test_equal(arg, "-h")) print_help();
-         else std::cout << R"([!] Unknown option has been specified.
+         else std::cerr << R"([!] Unknown option has been specified.
 Use -h option to get help.
 )";
          break;
