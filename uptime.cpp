@@ -92,8 +92,17 @@ Options:
 }
 
 bool test_equal(std::string_view a, std::string_view b) {
+#if defined(_MSC_VER) && MSC_VER < 2000 || !defined(__cpp_lib_ranges)
+  return a.size() == b.size() &&
+    std::equal(a.begin(), a.end(), b.begin(),
+       [](unsigned char ac, unsigned char bc){
+          return std::tolower(ac) == std::tolower(bc);
+       }
+    );
+#else
    return a.size() == b.size() &&
       std::ranges::equal(a, b, {}, [](unsigned char c){ return std::tolower(c); });
+#endif
 }
 
 int main(int argc, char** argv) {
