@@ -1,1 +1,1 @@
-uptime different systems
+simple uptime utility
