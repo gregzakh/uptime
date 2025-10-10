@@ -39,8 +39,7 @@ struct uptime {
    minutes m{};
    seconds s{};
    
-   explicit uptime(seconds total) {
-      sec = total;
+   explicit uptime(seconds total) : sec(total) {
       d = std::chrono::duration_cast<days>(total);
       total -= d;
       h = std::chrono::duration_cast<hours>(total);
@@ -92,7 +91,7 @@ Options:
 }
 
 bool test_equal(std::string_view a, std::string_view b) {
-#if defined(_MSC_VER) && MSC_VER < 2000 || !defined(__cpp_lib_ranges)
+#if defined(_MSC_VER) && _MSC_VER < 2000 || !defined(__cpp_lib_ranges)
   return a.size() == b.size() &&
     std::equal(a.begin(), a.end(), b.begin(),
        [](unsigned char ac, unsigned char bc){
