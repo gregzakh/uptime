@@ -92,7 +92,7 @@ Options:
 }
 
 bool test_equal(std::string_view a, std::string_view b) {
-#if defined(_MSC_VER) && _MSC_VER < 2000 || !defined(__cpp_lib_ranges)
+#if (defined(_MSC_VER) && _MSC_VER < 2000) || !defined(__cpp_lib_ranges)
   return a.size() == b.size() &&
     std::equal(a.begin(), a.end(), b.begin(),
        [](unsigned char ac, unsigned char bc){
