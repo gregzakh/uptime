@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cctype>
 #include <chrono>
 #include <format>
 #include <string>
