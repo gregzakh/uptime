@@ -1,5 +1,6 @@
 *
 !.gitignore
+!CMakeLists.txt
 !license
 !readme.txt
 !uptime.cpp
