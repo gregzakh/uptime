@@ -6,6 +6,10 @@
 #include <string_view>
 #if defined(__linux__)
    #include <sys/sysinfo.h>
+#elif defined(__APPLE__)
+   #include <sys/sysctl.h>
+   #include <sys/time.h>
+   #include <sys/types.h>
 #endif
 
 auto get_seconds() {
@@ -14,8 +18,15 @@ auto get_seconds() {
    return seconds(*reinterpret_cast<int64_t*>(0x7FFE0008)) / 10000000LL;
 #elif defined(__linux__)
    struct sysinfo si{};
-   sysinfo(&si);
-   return seconds(si.uptime);
+   if (sysinfo(&si) == 0)
+      return seconds(si.uptime);
+   return seconds(0LL);
+#elif defined(__APPLE__)
+   struct timeval bt;
+   auto sz = sizeof(bt);
+   if (sysctlbyname("kern.boottime", &bt, &sz, nullptr, 0) == 0)
+      return seconds(time(nullptr) - bt.tv_sec);
+   return seconds(0LL);
 #else
    return seconds(0LL);
 #endif
