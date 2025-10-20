@@ -10,7 +10,6 @@ if (APPLE)
 
    if (SDK_PATH)
       set(CMAKE_CXX_FLAGS_INIT "-isysroot ${SDK_PATH}")
-      set(CMAKE_EXE_LINKER_FLAGS_INIT "-isysroot ${SDK_PATH}")
    else()
       message(FATAL_ERROR "Failed to detect SDKROOT via xcrun.")
    endif()
