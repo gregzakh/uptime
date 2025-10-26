@@ -2,5 +2,5 @@
 !.gitignore
 !CMakeLists.txt
 !license
-!readme.txt
+!readme.md
 !uptime.cpp
