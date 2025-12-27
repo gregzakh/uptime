@@ -14,7 +14,7 @@
 
 auto get_seconds() {
    using seconds = std::chrono::seconds;
-#if defined(_WIN64)
+#if defined(_WIN32)
    return seconds(*reinterpret_cast<int64_t*>(0x7FFE0008)) / 10000000LL;
 #elif defined(__linux__)
    struct sysinfo si{};
